@@ -1,0 +1,5 @@
+python-telegram-bot[job-queue]
+google-generativeai
+mysql-connector-python
+APScheduler
+python-dotenv
