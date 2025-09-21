@@ -8,9 +8,7 @@ class Config:
     
     @staticmethod
     def get_db_host():
-        host = os.getenv('DB_HOST')
-        print(f"DB_HOST: {host}")
-        return host
+        return os.getenv('DB_HOST')
     
     @staticmethod
     def get_db_user():

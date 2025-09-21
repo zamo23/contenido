@@ -6,12 +6,12 @@ Un bot de Telegram inteligente que genera ideas de contenido para TikTok usando 
 
 ```
 Asistente/
-├── main.py                 # Punto de entrada principal
+├── app.py                  # Punto de entrada principal
 ├── requirements.txt        # Dependencias del proyecto
 ├── .env                    # Variables de entorno (configurar)
 ├── README.md              # Documentación del proyecto
 ├── db/
-│   └── estructura.sql     # Estructura de la base de datos
+│   └── db.sql             # Estructura de la base de datos
 ├── env/                   # Entorno virtual
 ├── config/
 │   ├── __init__.py
@@ -26,9 +26,11 @@ Asistente/
 ├── controllers/
 │   ├── __init__.py
 │   └── access_controller.py # Control de acceso de usuarios
-└── bot/
-    ├── __init__.py
-    └── telegram_bot.py    # Lógica del bot de Telegram
+├── bot/
+│   ├── __init__.py
+│   └── telegram_bot.py    # Lógica del bot de Telegram
+└── telegram/
+    └── telegram_bot.py    # (duplicado, revisar)
 ```
 
 ## 🛠️ Tecnologías Utilizadas
@@ -52,7 +54,7 @@ Asistente/
 1. **Clona el repositorio:**
    ```bash
    git clone https://github.com/zamo23/contenido.git
-   cd Asistente
+   cd contenido
    ```
 
 2. **Crea un entorno virtual:**
@@ -77,7 +79,7 @@ Asistente/
    DB_PORT=3306
    DB_USER=tu_usuario_mysql
    DB_PASSWORD=tu_password_mysql
-   DB_NAME=content_bot
+   DB_NAME=contenido
 
    # API de Google Gemini
    IA_GOOGLE=tu_api_key_de_google_gemini
@@ -90,7 +92,9 @@ Asistente/
 
 ### Creación de la Base de Datos
 
-Ejecuta el script `db/estructura.sql` en tu servidor MySQL para crear la base de datos y las tablas necesarias.
+Ejecuta el script `db/db.sql` en tu servidor MySQL para crear la base de datos y las tablas necesarias. El script crea la base de datos `contenido` con codificación UTF8MB4 para soporte completo de caracteres Unicode.
+
+Alternativamente, puedes copiar y pegar el script SQL completo de la sección siguiente directamente en tu cliente MySQL.
 
 ### Tablas
 
@@ -99,14 +103,15 @@ Almacena la información de los usuarios de Telegram que tienen acceso al bot.
 
 ```sql
 CREATE TABLE users (
-    id BIGINT PRIMARY KEY,              -- ID de Telegram
-    username VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  id BIGINT(20) NOT NULL AUTO_INCREMENT,
+  username VARCHAR(100) DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
 ```
 
 **Campos:**
-- `id`: ID único de Telegram (clave primaria)
+- `id`: ID único de Telegram (clave primaria, auto-incremental)
 - `username`: Nombre de usuario de Telegram
 - `created_at`: Fecha de creación del registro
 
@@ -115,12 +120,14 @@ Almacena las ideas principales de contenido generadas por el bot.
 
 ```sql
 CREATE TABLE content_ideas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    category VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  user_id BIGINT(20) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY user_id (user_id),
+  CONSTRAINT fk_content_ideas_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
 ```
 
 **Campos:**
@@ -134,15 +141,18 @@ Almacena las traducciones de cada idea en diferentes idiomas.
 
 ```sql
 CREATE TABLE content_translations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    idea_id INT NOT NULL,
-    language ENUM('es','en') NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    content JSON NOT NULL,
-    hashtags TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (idea_id) REFERENCES content_ideas(id) ON DELETE CASCADE
-);
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  idea_id INT(11) NOT NULL,
+  language ENUM('es','en') NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (JSON_VALID(content)),
+  hashtags TEXT DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  video_prompts TEXT DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idea_id (idea_id),
+  CONSTRAINT fk_content_translations_idea FOREIGN KEY (idea_id) REFERENCES content_ideas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
 ```
 
 **Campos:**
@@ -150,9 +160,10 @@ CREATE TABLE content_translations (
 - `idea_id`: ID de la idea relacionada (clave foránea)
 - `language`: Idioma de la traducción ('es' para español, 'en' para inglés)
 - `title`: Título de la idea en el idioma correspondiente
-- `content`: Contenido de la idea en formato JSON (guion dividido en gancho, cuerpo, cierre)
+- `content`: Contenido de la idea en formato JSON (guion dividido en gancho, cuerpo, cierre) con validación JSON
 - `hashtags`: Lista de hashtags relevantes
 - `created_at`: Fecha de creación de la traducción
+- `video_prompts`: Prompts para generación de videos relacionados
 
 ### Relaciones
 
@@ -160,11 +171,53 @@ CREATE TABLE content_translations (
 - Una idea puede tener múltiples traducciones (`content_ideas` → `content_translations`)
 - Las eliminaciones en cascada mantienen la integridad referencial
 
-## ⚙️ Configuración
+### Script SQL Completo
+
+Copia y pega el siguiente script en tu cliente MySQL para crear la base de datos completa:
+
+```sql
+CREATE DATABASE IF NOT EXISTS contenido CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE contenido;
+
+-- Tabla de usuarios
+CREATE TABLE users (
+  id BIGINT(20) NOT NULL AUTO_INCREMENT,
+  username VARCHAR(100) DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+-- Tabla de ideas de contenido
+CREATE TABLE content_ideas (
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  user_id BIGINT(20) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY user_id (user_id),
+  CONSTRAINT fk_content_ideas_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Tabla de traducciones de contenido
+CREATE TABLE content_translations (
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  idea_id INT(11) NOT NULL,
+  language ENUM('es','en') NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (JSON_VALID(content)),
+  hashtags TEXT DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  video_prompts TEXT DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idea_id (idea_id),
+  CONSTRAINT fk_content_translations_idea FOREIGN KEY (idea_id) REFERENCES content_ideas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+```
 
 1. **Base de datos MySQL:**
-   - Crea una base de datos llamada `content_bot`
-   - Ejecuta el script `db/estructura.sql`
+   - Crea una base de datos llamada `contenido`
+   - Ejecuta el script `db/db.sql`
    - Asegúrate de que las credenciales en `.env` sean correctas
 
 2. **Bot de Telegram:**
@@ -179,7 +232,7 @@ CREATE TABLE content_translations (
 
 1. **Inicia el bot:**
    ```bash
-   python main.py
+   python app.py
    ```
 
 2. **Comandos disponibles:**

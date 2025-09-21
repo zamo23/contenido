@@ -50,10 +50,19 @@ class DatabaseHandler:
         
         for lang, data in ideas.items():
             content_json = json.dumps(data['script'])
-            cursor.execute(
-                "INSERT INTO content_translations (idea_id, language, title, content, hashtags) VALUES (%s, %s, %s, %s, %s)",
-                (idea_id, lang, data['title'], content_json, data['hashtags'])
-            )
+            video_prompts_json = json.dumps(data.get('video_prompts', []))
+            try:
+                cursor.execute(
+                    "INSERT INTO content_translations (idea_id, language, title, content, hashtags, video_prompts) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (idea_id, lang, data['title'], content_json, data['hashtags'], video_prompts_json)
+                )
+            except Exception as e:
+                logger.error(f"Error inserting translation for lang {lang}: {e}")
+                # Fallback without video_prompts
+                cursor.execute(
+                    "INSERT INTO content_translations (idea_id, language, title, content, hashtags) VALUES (%s, %s, %s, %s, %s)",
+                    (idea_id, lang, data['title'], content_json, data['hashtags'])
+                )
         
         self.connection.commit()
         cursor.close()
@@ -80,7 +89,7 @@ class DatabaseHandler:
         cursor = self.connection.cursor(dictionary=True)
         if category:
             cursor.execute("""
-                SELECT i.id, i.category, i.created_at, t.language, t.title, t.content, t.hashtags
+                SELECT i.id, i.category, i.created_at, t.language, t.title, t.content, t.hashtags, t.video_prompts
                 FROM content_ideas i
                 JOIN content_translations t ON i.id = t.idea_id
                 WHERE i.user_id = %s AND i.category = %s
@@ -89,7 +98,7 @@ class DatabaseHandler:
             """, (user_id, category, limit, offset))
         else:
             cursor.execute("""
-                SELECT i.id, i.category, i.created_at, t.language, t.title, t.content, t.hashtags
+                SELECT i.id, i.category, i.created_at, t.language, t.title, t.content, t.hashtags, t.video_prompts
                 FROM content_ideas i
                 JOIN content_translations t ON i.id = t.idea_id
                 WHERE i.user_id = %s
@@ -124,7 +133,7 @@ class DatabaseHandler:
             self.connect()
         cursor = self.connection.cursor(dictionary=True)
         cursor.execute("""
-            SELECT language, title, content, hashtags
+            SELECT language, title, content, hashtags, video_prompts
             FROM content_translations
             WHERE idea_id = %s
         """, (idea_id,))
@@ -136,6 +145,7 @@ class DatabaseHandler:
             translations[lang] = {
                 'title': row['title'],
                 'content': json.loads(row['content']),
-                'hashtags': row['hashtags']
+                'hashtags': row['hashtags'],
+                'video_prompts': json.loads(row['video_prompts']) if row['video_prompts'] else []
             }
         return translations

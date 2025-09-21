@@ -209,10 +209,18 @@ class TelegramBot:
                 es_content = f"**{es['title']}**\n\n**Gancho:** {es['content']['gancho']}\n**Cuerpo:** {es['content']['cuerpo']}\n**Cierre:** {es['content']['cierre']}"
                 await query.message.reply_text(es_content, parse_mode='Markdown')
                 await query.message.reply_text(f"**Hashtags:** {es['hashtags']}", parse_mode='Markdown')
+                if 'video_prompts' in es and es['video_prompts']:
+                    await query.message.reply_text("**Prompts para videos (Español):**", parse_mode='Markdown')
+                    for prompt in es['video_prompts']:
+                        await query.message.reply_text(prompt)
             if en:
                 en_content = f"**{en['title']}**\n\n**Hook:** {en['content']['gancho']}\n**Body:** {en['content']['cuerpo']}\n**Closing:** {en['content']['cierre']}"
                 await query.message.reply_text(en_content, parse_mode='Markdown')
                 await query.message.reply_text(f"**Hashtags:** {en['hashtags']}", parse_mode='Markdown')
+                if 'video_prompts' in en and en['video_prompts']:
+                    await query.message.reply_text("**Prompts para videos (English):**", parse_mode='Markdown')
+                    for prompt in en['video_prompts']:
+                        await query.message.reply_text(prompt)
         
         elif data.startswith("gen_cat_"):
             cat_index = int(data.split("_")[2])
@@ -234,9 +242,17 @@ class TelegramBot:
                 es_content = f"**{category} - Español**\n\n**Título:** {es['title']}\n\n**Guion:**\n- Gancho: {es['script']['gancho']}\n- Cuerpo: {es['script']['cuerpo']}\n- Cierre: {es['script']['cierre']}"
                 await context.bot.send_message(chat_id=query.message.chat_id, text=es_content, parse_mode='Markdown')
                 await context.bot.send_message(chat_id=query.message.chat_id, text=f"**Hashtags:** {es['hashtags']}", parse_mode='Markdown')
+                if 'video_prompts' in es and es['video_prompts']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Prompts para videos (Español):**", parse_mode='Markdown')
+                    for prompt in es['video_prompts']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=prompt)
                 en_content = f"**{category} - English**\n\n**Title:** {en['title']}\n\n**Script:**\n- Hook: {en['script']['gancho']}\n- Body: {en['script']['cuerpo']}\n- Closing: {en['script']['cierre']}"
                 await context.bot.send_message(chat_id=query.message.chat_id, text=en_content, parse_mode='Markdown')
                 await context.bot.send_message(chat_id=query.message.chat_id, text=f"**Hashtags:** {en['hashtags']}", parse_mode='Markdown')
+                if 'video_prompts' in en and en['video_prompts']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Prompts para videos (English):**", parse_mode='Markdown')
+                    for prompt in en['video_prompts']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=prompt)
             except Exception as e:
                 await context.bot.edit_message_text(chat_id=query.message.chat_id, message_id=generating_msg.message_id, text="Error al generar la idea. Inténtalo de nuevo.")
                 logger.error(f"Error generating idea: {e}")
