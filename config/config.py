@@ -1,14 +1,16 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv('.ENV')
+load_dotenv('.env')
 
 class Config:
     """Configuration class for environment variables."""
     
     @staticmethod
     def get_db_host():
-        return os.getenv('DB_HOST')
+        host = os.getenv('DB_HOST')
+        print(f"DB_HOST: {host}")
+        return host
     
     @staticmethod
     def get_db_user():
@@ -21,6 +23,10 @@ class Config:
     @staticmethod
     def get_db_name():
         return os.getenv('DB_NAME')
+    
+    @staticmethod
+    def get_db_port():
+        return os.getenv('DB_PORT')
     
     @staticmethod
     def get_google_api_key():

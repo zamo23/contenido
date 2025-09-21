@@ -18,9 +18,12 @@ class DatabaseHandler:
         try:
             self.connection = mysql.connector.connect(
                 host=Config.get_db_host(),
+                port=int(Config.get_db_port()),
                 user=Config.get_db_user(),
                 password=Config.get_db_password(),
-                database=Config.get_db_name()
+                database=Config.get_db_name(),
+                connection_timeout=5,
+                use_pure=True
             )
             logger.info("Database connected successfully")
         except Error as e:

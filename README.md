@@ -51,7 +51,7 @@ Asistente/
 
 1. **Clona el repositorio:**
    ```bash
-   git clone <url-del-repositorio>
+   git clone https://github.com/zamo23/contenido.git
    cd Asistente
    ```
 
@@ -74,6 +74,7 @@ Asistente/
    ```env
    # Base de datos MySQL
    DB_HOST=localhost
+   DB_PORT=3306
    DB_USER=tu_usuario_mysql
    DB_PASSWORD=tu_password_mysql
    DB_NAME=content_bot
