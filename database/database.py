@@ -80,7 +80,12 @@ class DatabaseHandler:
     
     def add_user_category(self, user_id: int, category: str):
         """Add a category for user (by inserting a dummy idea or just ensure exists)."""
-        pass
+        if not self.connection.is_connected():
+            self.connect()
+        cursor = self.connection.cursor()
+        cursor.execute("INSERT INTO content_ideas (user_id, category) VALUES (%s, %s)", (user_id, category))
+        self.connection.commit()
+        cursor.close()
     
     def get_user_ideas(self, user_id: int, category: str = None, limit: int = 10, offset: int = 0) -> List[Dict]:
         """Get user's ideas, optionally by category."""

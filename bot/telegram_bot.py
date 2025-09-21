@@ -94,8 +94,20 @@ class TelegramBot:
                 pass
         
         elif data == "generate":
+            categories = self.content_manager.db_handler.get_user_categories(user_id)
+            if not categories:
+                try:
+                    await query.edit_message_text("No tienes categorías. Gestiona tus categorías primero con /start.")
+                except Exception:
+                    pass
+                return
+            
+            keyboard = [
+                [InlineKeyboardButton(cat, callback_data=f"gen_cat_{i}")] for i, cat in enumerate(categories)
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             try:
-                await self.generar(update, context) 
+                await query.edit_message_text("Selecciona una categoría para generar una idea:", reply_markup=reply_markup)
             except Exception:
                 pass
         
@@ -117,7 +129,7 @@ class TelegramBot:
             end = start + per_page
             page_cats = categories[start:end]
             keyboard = [
-                [InlineKeyboardButton(cat, callback_data=f"view_cat_{cat}_0")] for cat in page_cats
+                [InlineKeyboardButton(cat, callback_data=f"view_cat_{cat.replace(' ', '_')}_0")] for cat in page_cats
             ]
             if page > 0:
                 keyboard.append([InlineKeyboardButton("⬅️ Anterior", callback_data=f"list_cat_{page-1}")])
@@ -129,12 +141,12 @@ class TelegramBot:
         
         elif data.startswith("view_cat_"):
             parts = data.split("_")
-            category = "_".join(parts[2:-1]) 
+            category = "_".join(parts[2:-1]).replace("_", " ")
             page = int(parts[-1])
             keyboard = [
-                [InlineKeyboardButton("Ver ideas", callback_data=f"list_ideas_{category}_0")],
-                [InlineKeyboardButton("Editar categoría", callback_data=f"edit_cat_{category}")],
-                [InlineKeyboardButton("Eliminar categoría", callback_data=f"delete_cat_{category}")]
+                [InlineKeyboardButton("Ver ideas", callback_data=f"list_ideas_{category.replace(' ', '_')}_0")],
+                [InlineKeyboardButton("Editar categoría", callback_data=f"edit_cat_{category.replace(' ', '_')}")],
+                [InlineKeyboardButton("Eliminar categoría", callback_data=f"delete_cat_{category.replace(' ', '_')}")]
             ]
             keyboard.append([InlineKeyboardButton("⬅️ Volver", callback_data="list_cat_0")])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -142,11 +154,11 @@ class TelegramBot:
         
         elif data.startswith("list_ideas_"):
             parts = data.split("_")
-            category = "_".join(parts[2:-1])
+            category = "_".join(parts[2:-1]).replace("_", " ")
             page = int(parts[-1])
             ideas = self.content_manager.db_handler.get_user_ideas(user_id, category, limit=5, offset=page*5)
             if not ideas:
-                await query.edit_message_text(f"No hay ideas en '{category}'.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Volver", callback_data=f"view_cat_{category}_0")]]))
+                await query.edit_message_text(f"No hay ideas en '{category}'.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Volver", callback_data=f"view_cat_{category.replace(' ', '_')}_0")]]))
                 return
             idea_dict = {}
             for idea in ideas:
@@ -164,29 +176,29 @@ class TelegramBot:
                 date_str = data['created_at'].strftime('%Y-%m-%d')
                 keyboard.append([InlineKeyboardButton(f"{title} - {date_str}", callback_data=f"show_idea_{iid}")])
             if page > 0:
-                keyboard.append([InlineKeyboardButton("⬅️ Anterior", callback_data=f"list_ideas_{category}_{page-1}")])
+                keyboard.append([InlineKeyboardButton("⬅️ Anterior", callback_data=f"list_ideas_{category.replace(' ', '_')}_{page-1}")])
             if len(idea_dict) == 5:
-                keyboard.append([InlineKeyboardButton("Siguiente ➡️", callback_data=f"list_ideas_{category}_{page+1}")])
-            keyboard.append([InlineKeyboardButton("⬅️ Volver", callback_data=f"view_cat_{category}_0")])
+                keyboard.append([InlineKeyboardButton("Siguiente ➡️", callback_data=f"list_ideas_{category.replace(' ', '_')}_{page+1}")])
+            keyboard.append([InlineKeyboardButton("⬅️ Volver", callback_data=f"view_cat_{category.replace(' ', '_')}_0")])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(f"Ideas en '{category}':", reply_markup=reply_markup)
         
         elif data.startswith("edit_cat_"):
-            category = "_".join(data.split("_")[2:])
-            self.user_states[user_id] = f'waiting_new_cat_name_{category}'
+            category = "_".join(data.split("_")[2:]).replace("_", " ")
+            self.user_states[user_id] = f'waiting_new_cat_name_{category.replace(" ", "_")}'
             await query.edit_message_text(f"Envía el nuevo nombre para la categoría '{category}':")
         
         elif data.startswith("delete_cat_"):
-            category = "_".join(data.split("_")[2:])
+            category = "_".join(data.split("_")[2:]).replace("_", " ")
             keyboard = [
-                [InlineKeyboardButton("Sí, eliminar", callback_data=f"confirm_delete_{category}")],
-                [InlineKeyboardButton("No, cancelar", callback_data=f"view_cat_{category}_0")]
+                [InlineKeyboardButton("Sí, eliminar", callback_data=f"confirm_delete_{category.replace(' ', '_')}")],
+                [InlineKeyboardButton("No, cancelar", callback_data=f"view_cat_{category.replace(' ', '_')}_0")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(f"¿Estás seguro de eliminar la categoría '{category}' y todas sus ideas?", reply_markup=reply_markup)
         
         elif data.startswith("confirm_delete_"):
-            category = "_".join(data.split("_")[2:])
+            category = "_".join(data.split("_")[2:]).replace("_", " ")
             self.content_manager.db_handler.delete_user_category(user_id, category)
             await query.edit_message_text(f"Categoría '{category}' eliminada.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Volver", callback_data="list_cat_0")]]))
         
@@ -275,6 +287,7 @@ class TelegramBot:
             if not category_name:
                 await update.message.reply_text("Nombre inválido. Intenta de nuevo:")
                 return
+            self.content_manager.db_handler.add_user_category(user_id, category_name)
             await update.message.reply_text(f"Categoría '{category_name}' agregada. Ahora puedes generar ideas en ella.")
             del self.user_states[user_id]
             keyboard = [
@@ -285,7 +298,7 @@ class TelegramBot:
             await update.message.reply_text("Elige una opción:", reply_markup=reply_markup)
         
         elif state.startswith('waiting_new_cat_name_'):
-            old_cat = state.split('_', 3)[3]
+            old_cat = state.split('_', 4)[-1].replace("_", " ")
             new_cat = update.message.text.strip()
             if not new_cat:
                 await update.message.reply_text("Nombre inválido. Intenta de nuevo:")
@@ -293,12 +306,8 @@ class TelegramBot:
             self.content_manager.db_handler.update_user_category(user_id, old_cat, new_cat)
             await update.message.reply_text(f"Categoría cambiada de '{old_cat}' a '{new_cat}'.")
             del self.user_states[user_id]
-            keyboard = [
-                [InlineKeyboardButton("Gestionar categorías", callback_data="manage_cat")],
-                [InlineKeyboardButton("Generar ideas", callback_data="generate")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text("Elige una opción:", reply_markup=reply_markup)
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Volver a categorías", callback_data="list_cat_0")]])
+            await update.message.reply_text("Categoría actualizada.", reply_markup=reply_markup)
     
     def run(self):
         self.application.run_polling()
