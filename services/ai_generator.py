@@ -11,8 +11,8 @@ class AIGenerator:
     """Handles AI content generation using Google Gemini."""
     
     def __init__(self):
-        genai.configure(api_key=Config.get_google_api_key())
-        self.model = genai.GenerativeModel("gemini-1.5-pro")
+       genai.configure(api_key=Config.get_google_api_key())
+       self.model = genai.GenerativeModel("gemini-2.5-pro")
     
     def generate_idea(self, category: str, existing_titles: List[str] = None) -> Dict[str, Any]:
         """Generate idea for a category."""

@@ -3,3 +3,4 @@ google-generativeai
 mysql-connector-python
 APScheduler
 python-dotenv
+notion-client

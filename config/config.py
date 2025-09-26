@@ -33,3 +33,11 @@ class Config:
     @staticmethod
     def get_telegram_token():
         return os.getenv('token_telegram')
+    
+    @staticmethod
+    def get_notion_token():
+        return os.getenv('Token_notion')
+    
+    @staticmethod
+    def get_notion_database_id():
+        return os.getenv('NOTION_DATABASE_ID')
