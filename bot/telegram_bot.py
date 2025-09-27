@@ -258,13 +258,34 @@ class TelegramBot:
                     await context.bot.send_message(chat_id=query.message.chat_id, text="**Prompts para videos (Español):**", parse_mode='Markdown')
                     for prompt in es['video_prompts']:
                         await context.bot.send_message(chat_id=query.message.chat_id, text=prompt)
-                en_content = f"**{category} - English**\n\n**Title:** {en['title']}\n\n**Script:**\n- Hook: {en['script']['gancho']}\n- Body: {en['script']['cuerpo']}\n- Closing: {en['script']['cierre']}"
+                # Mostrar links de imágenes y videos de Pexels (Español)
+                if 'pexels_images' in es and es['pexels_images']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Imágenes sugeridas (Pexels):**", parse_mode='Markdown')
+                    for img_url in es['pexels_images']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=img_url)
+                if 'pexels_videos' in es and es['pexels_videos']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Videos sugeridos (Pexels):**", parse_mode='Markdown')
+                    for vid_url in es['pexels_videos']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=vid_url)
+
+                # Usar las claves correctas en inglés
+                en_script = en.get('script', {})
+                en_content = f"**{category} - English**\n\n**Title:** {en['title']}\n\n**Script:**\n- Hook: {en_script.get('hook', '')}\n- Body: {en_script.get('body', '')}\n- Closing: {en_script.get('closing', '')}"
                 await context.bot.send_message(chat_id=query.message.chat_id, text=en_content, parse_mode='Markdown')
                 await context.bot.send_message(chat_id=query.message.chat_id, text=f"**Hashtags:** {en['hashtags']}", parse_mode='Markdown')
                 if 'video_prompts' in en and en['video_prompts']:
                     await context.bot.send_message(chat_id=query.message.chat_id, text="**Prompts para videos (English):**", parse_mode='Markdown')
                     for prompt in en['video_prompts']:
                         await context.bot.send_message(chat_id=query.message.chat_id, text=prompt)
+                # Mostrar links de imágenes y videos de Pexels (Inglés)
+                if 'pexels_images' in en and en['pexels_images']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Suggested images (Pexels):**", parse_mode='Markdown')
+                    for img_url in en['pexels_images']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=img_url)
+                if 'pexels_videos' in en and en['pexels_videos']:
+                    await context.bot.send_message(chat_id=query.message.chat_id, text="**Suggested videos (Pexels):**", parse_mode='Markdown')
+                    for vid_url in en['pexels_videos']:
+                        await context.bot.send_message(chat_id=query.message.chat_id, text=vid_url)
             except Exception as e:
                 await context.bot.edit_message_text(chat_id=query.message.chat_id, message_id=generating_msg.message_id, text="Error al generar la idea. Inténtalo de nuevo.")
                 logger.error(f"Error generating idea: {e}")

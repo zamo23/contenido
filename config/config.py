@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 
 class Config:
+    @staticmethod
+    def get_pexels_token():
+        return os.getenv('Token_pexels')
     """Configuration class for environment variables."""
     
     @staticmethod
